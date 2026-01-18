@@ -1,0 +1,21 @@
+# --- Secrets / local environment ---
+.env
+
+# --- Python virtual environments ---
+.venv/
+
+# --- Runtime data (Flask instance folder) ---
+# This app stores uploads and SQLite DB under instance/ by default.
+instance/
+*.sqlite3
+
+# Note: uploads/ is inside instance/ (instance/uploads/) in this repo,
+# so a separate uploads/ ignore is not needed.
+
+# --- Python cache / bytecode ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Test cache ---
+.pytest_cache/

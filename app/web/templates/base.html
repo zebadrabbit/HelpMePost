@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Help Me Post{% endblock %}</title>
+
+    <!-- Bootstrap (CDN) -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+
+    <!-- Dropzone (CDN) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/dropzone@5/dist/min/dropzone.min.css"
+    />
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-semibold" href="/">HelpMePost</a>
+        <div class="ms-auto">
+          <a class="btn btn-sm btn-outline-secondary" href="/projects">Projects</a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container py-4">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Toasts -->
+    <div
+      class="toast-container position-fixed bottom-0 end-0 p-3"
+      id="toast-container"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+
+    <!-- Media Preview Modal -->
+    <div class="modal fade" id="hm-media-preview" tabindex="-1" aria-labelledby="hm-media-preview-title" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="hm-media-preview-title">Media preview</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="position-relative">
+              <div id="hm-media-preview-body" class="text-center"></div>
+              <button
+                type="button"
+                class="btn btn-light border position-absolute top-50 start-0 translate-middle-y"
+                id="hm-media-preview-prev"
+                aria-label="Previous"
+                style="display:none;"
+              >
+                <span aria-hidden="true">&lsaquo;</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-light border position-absolute top-50 end-0 translate-middle-y"
+                id="hm-media-preview-next"
+                aria-label="Next"
+                style="display:none;"
+              >
+                <span aria-hidden="true">&rsaquo;</span>
+              </button>
+            </div>
+            <div class="mt-3 small text-muted d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <span id="hm-media-preview-meta"></span>
+              <a id="hm-media-preview-open" class="btn btn-sm btn-outline-secondary" href="#" target="_blank" rel="noreferrer" style="display:none;">Open file</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS (CDN) -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Dropzone (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/dropzone@5/dist/min/dropzone.min.js"></script>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

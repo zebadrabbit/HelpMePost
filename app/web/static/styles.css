@@ -1,0 +1,64 @@
+body {
+  background:
+    radial-gradient(1400px 900px at 12% 2%, rgba(255, 237, 213, 0.95) 0%, rgba(255, 237, 213, 0.40) 38%, rgba(255, 237, 213, 0) 78%),
+    radial-gradient(1100px 800px at 95% 10%, rgba(224, 231, 255, 0.80) 0%, rgba(224, 231, 255, 0.22) 40%, rgba(224, 231, 255, 0) 80%),
+    #f8fafc;
+  color: #111827;
+}
+
+.hm-builder .lead {
+  font-size: 1.1rem;
+}
+
+.hm-card {
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  box-shadow: 0 10px 30px rgba(17, 24, 39, 0.06);
+}
+
+.hm-card .card-header {
+  border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.dropzone {
+  padding: 1rem;
+}
+
+.hm-dropzone {
+  border: 2px dashed rgba(17, 24, 39, 0.16);
+  border-radius: 1rem;
+  background: #ffffff;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.hm-dropzone:hover {
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: 0 10px 26px rgba(59, 130, 246, 0.08);
+}
+
+.hm-empty {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px dashed rgba(17, 24, 39, 0.18);
+}
+
+#bluesky-char-counter {
+  letter-spacing: 0.01em;
+}
+
+.result-box {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #0b1220;
+  color: #e5e7eb;
+  padding: 0.75rem;
+  border-radius: 0.9rem;
+}
+
+.result-box:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.55);
+  outline-offset: 2px;
+}
+
+.table td {
+  vertical-align: middle;
+}

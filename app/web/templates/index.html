@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block title %}Help Me Post{% endblock %}
+
+{% block content %}
+<div id="builder-root" class="hm-builder">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10 col-xl-8">
+      <header class="py-3 py-md-4 text-center">
+        <h1 class="display-6 fw-bold mb-2">HelpMePost</h1>
+        <p class="lead text-muted mb-0">Drop an image, tell me the focus, and post to Bluesky in seconds.</p>
+      </header>
+
+      <div class="card hm-card rounded-4 mb-4">
+        <div class="card-header bg-transparent">
+          <div class="fw-semibold">Upload media</div>
+          <div class="text-muted small">Drag &amp; drop images (or click to browse). Uploads attach to your project automatically.</div>
+        </div>
+        <div class="card-body">
+          <form
+            id="builder-dropzone"
+            class="dropzone hm-dropzone"
+            action="#"
+            method="post"
+            enctype="multipart/form-data"
+          >
+            <div class="dz-message">
+              <div class="fw-semibold">Drop files here</div>
+              <div class="text-muted small">Images work best for Bluesky posting.</div>
+            </div>
+          </form>
+
+          <div class="form-text mt-2">Tip: you can upload first — add your focus whenever you’re ready.</div>
+
+          <div class="mt-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <h3 class="h6 mb-0">Uploaded media</h3>
+              <div class="btn-group btn-group-sm" role="group" aria-label="Selection">
+                <button type="button" class="btn btn-outline-secondary" id="builder-select-all">Select all</button>
+                <button type="button" class="btn btn-outline-secondary" id="builder-select-none">Select none</button>
+              </div>
+            </div>
+
+            <div class="table-responsive mt-2">
+              <table class="table table-sm align-middle" id="builder-media-table">
+                <thead>
+                  <tr>
+                    <th style="width: 2.5rem"></th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th class="text-end">Size</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="5" class="text-muted">No uploads yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card hm-card rounded-4 mb-4">
+        <div class="card-header bg-transparent">
+          <div class="fw-semibold">Generate</div>
+          <div class="text-muted small">Tell me the focus and I’ll draft a post.</div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="focus" class="form-label">What’s the focus of this post?</label>
+              <input
+                id="focus"
+                class="form-control form-control-lg"
+                type="text"
+                placeholder="Example: A small Flask app that turns images into Bluesky posts"
+                required
+              />
+              <div class="form-text">This is required — it guides the generated post.</div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label for="audience" class="form-label">Audience <span class="text-muted">(optional)</span></label>
+              <input id="audience" class="form-control" type="text" placeholder="indie devs, makers, pet owners…" />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label for="tone" class="form-label">Tone <span class="text-muted">(optional)</span></label>
+              <select id="tone" class="form-select">
+                <option value="" selected>(no preference)</option>
+                <option value="Informative">Informative</option>
+                <option value="Excited">Excited</option>
+                <option value="Cozy">Cozy</option>
+                <option value="Funny">Funny</option>
+                <option value="Serious">Serious</option>
+              </select>
+            </div>
+          </div>
+
+          <hr class="my-4" />
+
+          <div class="row g-3 align-items-start">
+            <div class="col-12 col-md-6">
+              <div class="fw-semibold mb-2">Platform</div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="builder-platform" id="builder-platform-bluesky" value="bluesky" checked />
+                <label class="form-check-label" for="builder-platform-bluesky">Bluesky only</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="builder-platform" id="builder-platform-both" value="both" />
+                <label class="form-check-label" for="builder-platform-both">Both (Bluesky + YouTube)</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="builder-platform" id="builder-platform-youtube" value="youtube" disabled />
+                <label class="form-check-label" for="builder-platform-youtube">YouTube only <span class="text-muted">(coming soon)</span></label>
+              </div>
+              <div id="builder-youtube-note" class="form-text text-warning" style="display:none;">
+                YouTube generation requires a video (for now).
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <div class="fw-semibold mb-2">Options</div>
+
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" value="1" id="builder-template-mode" />
+                <label class="form-check-label" for="builder-template-mode"><span class="badge text-bg-secondary me-2">Template</span>Use Template Draft (no AI)</label>
+                <div class="form-text">A basic, local draft when AI isn’t available.</div>
+              </div>
+
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" value="1" id="builder-add-emojis" />
+                <label class="form-check-label" for="builder-add-emojis">Add emojis</label>
+              </div>
+
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" value="1" id="builder-include-cta" />
+                <label class="form-check-label" for="builder-include-cta">Include call-to-action</label>
+              </div>
+
+              <label for="builder-cta-target" class="form-label">Link / handle <span class="text-muted">(optional)</span></label>
+              <input id="builder-cta-target" class="form-control" type="text" placeholder="@your-handle, https://…" />
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 mt-4">
+            <button id="gen-bluesky" class="btn btn-primary" type="button">Generate Bluesky</button>
+            <button id="gen-both" class="btn btn-outline-primary" type="button">Generate Both</button>
+          </div>
+
+          <div id="builder-status" class="mt-3"></div>
+        </div>
+      </div>
+
+      <div class="card hm-card rounded-4" id="builder-results">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <div class="fw-semibold">Results</div>
+            <div class="text-muted small">Generate a draft to see results here.</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div id="builder-template-indicator" style="display:none;">
+              <span class="badge text-bg-warning">TEMPLATE</span>
+            </div>
+            <span class="badge text-bg-success" id="builder-ready-indicator" style="display:none;">READY</span>
+            <span class="badge text-bg-primary" id="builder-posted-indicator" style="display:none;">POSTED</span>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div id="builder-results-empty" class="hm-empty rounded-4 p-4 text-center">
+            <div class="fw-semibold mb-1">Generate a draft to see results here.</div>
+            <div class="text-muted small">Your Bluesky draft and posting panel will show up here.</div>
+          </div>
+
+          <div id="builder-results-body" class="d-none">
+            <ul class="nav nav-pills gap-2" id="builder-tabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-btn-draft" data-bs-toggle="pill" data-bs-target="#tab-draft" type="button" role="tab" aria-controls="tab-draft" aria-selected="true">Bluesky Draft</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-btn-post" data-bs-toggle="pill" data-bs-target="#tab-post" type="button" role="tab" aria-controls="tab-post" aria-selected="false">Posting</button>
+              </li>
+            </ul>
+
+            <div class="tab-content mt-3">
+              <div class="tab-pane fade show active" id="tab-draft" role="tabpanel" aria-labelledby="tab-btn-draft" tabindex="0">
+                <div id="card-bluesky">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <div class="text-muted small">Draft text (hashtags are included)</div>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="copy-bluesky">Copy post</button>
+                  </div>
+                  <pre class="result-box" id="bluesky-post">(not generated yet)</pre>
+
+                  <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                    <div class="small" id="bluesky-char-counter" aria-live="polite">Characters: 0 / 300 · Remaining: 300</div>
+                    <span class="badge text-bg-danger" id="bluesky-over-limit" style="display:none;">Over limit</span>
+                  </div>
+
+                  <div class="mt-3 mb-2 text-muted small">Alt text suggestions</div>
+                  <div class="border rounded-3 p-2 bg-white" id="bluesky-alt">(none)</div>
+                </div>
+
+                <div class="mt-4" id="card-youtube">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="fw-semibold">YouTube (optional)</div>
+                  </div>
+                  <div class="border rounded-4 p-3 bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div class="text-muted small">Title</div>
+                      <button class="btn btn-sm btn-outline-secondary" type="button" id="copy-youtube-title">Copy title</button>
+                    </div>
+                    <div class="mt-1" id="youtube-title">(not generated yet)</div>
+
+                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                      <div class="text-muted small">Description</div>
+                      <button class="btn btn-sm btn-outline-secondary" type="button" id="copy-youtube-desc">Copy description</button>
+                    </div>
+                    <div class="mt-1" id="youtube-desc" style="white-space: pre-wrap">(not generated yet)</div>
+
+                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                      <div class="text-muted small">Tags / keywords</div>
+                      <button class="btn btn-sm btn-outline-secondary" type="button" id="copy-youtube-tags">Copy tags</button>
+                    </div>
+                    <div class="mt-1" id="youtube-tags">(not generated yet)</div>
+
+                    <div class="mt-3 text-muted small">Category suggestion</div>
+                    <div class="mt-1" id="youtube-category">(none)</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tab-pane fade" id="tab-post" role="tabpanel" aria-labelledby="tab-btn-post" tabindex="0">
+                <div class="fw-semibold mb-2">Post to Bluesky <span class="text-muted">(publishes)</span></div>
+                <div class="row g-2 align-items-end">
+                  <div class="col-12 col-md-5">
+                    <label for="builder-bsky-identifier" class="form-label">Bluesky handle</label>
+                    <input id="builder-bsky-identifier" class="form-control" type="text" placeholder="your-handle.bsky.social" />
+                  </div>
+                  <div class="col-12 col-md-5">
+                    <label for="builder-bsky-app-password" class="form-label">App password</label>
+                    <input id="builder-bsky-app-password" class="form-control" type="password" placeholder="xxxx-xxxx-xxxx-xxxx" />
+                  </div>
+                  <div class="col-12 col-md-2 d-grid">
+                    <button id="builder-bsky-post-btn" class="btn btn-warning" type="button" disabled>Post to Bluesky</button>
+                  </div>
+                </div>
+                <div class="form-text mt-2">We do not store your credentials. Images only (no video/GIF yet).</div>
+                <div class="form-text text-warning" id="builder-bsky-limit" style="display:none;">Bluesky supports up to 4 images per post.</div>
+                <div id="builder-bsky-post-status" class="mt-2"></div>
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advanced-json" aria-expanded="false" aria-controls="advanced-json">
+                Advanced / Show JSON
+              </button>
+              <div class="collapse mt-2" id="advanced-json">
+                <pre class="result-box" id="builder-json">(no data)</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
