@@ -8,6 +8,7 @@ from .db import (  # noqa: F401
     MediaItem,
     PlanItem,
     ProjectItem,
+    delete_media,
     get_project,
     get_db,
     get_media,

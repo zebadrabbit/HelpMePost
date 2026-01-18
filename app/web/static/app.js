@@ -94,11 +94,13 @@
     const focus = (document.getElementById("focus")?.value || "").trim();
     const audience = (document.getElementById("audience")?.value || "").trim();
     const tone = (document.getElementById("tone")?.value || "").trim();
+    const tags = (document.getElementById("tags")?.value || "").trim();
 
     const lines = [];
     lines.push(`Focus: ${focus}`);
     if (audience) lines.push(`Audience: ${audience}`);
     if (tone) lines.push(`Tone: ${tone}`);
+    if (tags) lines.push(`Tags: ${tags}`);
     return lines.join("\n");
   }
 
@@ -134,6 +136,23 @@
       try { el.remove(); } catch (_e) {}
     });
     t.show();
+  }
+
+  function initTooltips(scope) {
+    if (!window.bootstrap || !window.bootstrap.Tooltip) return;
+    const root = scope || document;
+    const els = root.querySelectorAll('[data-bs-toggle="tooltip"]');
+    els.forEach(function (el) {
+      // Idempotent: avoid double-init if called multiple times.
+      if (el.dataset.hmTooltipInit === "1") return;
+      try {
+        // Allow per-element overrides via data attributes.
+        new window.bootstrap.Tooltip(el);
+        el.dataset.hmTooltipInit = "1";
+      } catch (_e) {
+        // no-op
+      }
+    });
   }
 
   function setButtonLoading(btn, loading, label) {
@@ -406,18 +425,50 @@
         <td class="text-muted">${type}</td>
         <td class="text-end">${formatBytes(item.size_bytes)}</td>
         <td class="text-end">
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-secondary"
-            data-hm-preview="1"
-            data-url="${item.url}"
-            data-content-type="${type}"
-            data-name="${String(item.original_name || "")}" 
-          >View</button>
+          <div class="btn-group btn-group-sm" role="group" aria-label="Media actions">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              data-hm-preview="1"
+              data-url="${item.url}"
+              data-content-type="${type}"
+              data-name="${String(item.original_name || "")}"
+            ><i class="bi bi-eye me-1" aria-hidden="true"></i>View</button>
+            <button
+              type="button"
+              class="btn btn-outline-danger project-media-delete"
+              data-project-id="${projectId}"
+              data-media-id="${item.id}"
+              data-name="${String(item.original_name || "")}"
+            ><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Delete</button>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
     }
+
+    // Delete buttons
+    tbody.querySelectorAll(".project-media-delete").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        const pid = parseInt(btn.getAttribute("data-project-id"), 10);
+        const mid = parseInt(btn.getAttribute("data-media-id"), 10);
+        const name = String(btn.getAttribute("data-name") || "this file");
+        if (!pid || !mid) return;
+        if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
+
+        try {
+          const resp = await fetch(`/api/projects/${pid}/media/${mid}`, { method: "DELETE", headers: { Accept: "application/json" } });
+          if (!resp.ok) {
+            const text = await resp.text();
+            throw new Error(text || `Request failed (${resp.status})`);
+          }
+          showToast("Deleted", "success");
+          refreshProjectMediaTable(pid).catch(function () {});
+        } catch (err) {
+          showToast("Delete failed", "danger");
+        }
+      });
+    });
   }
 
   async function refreshProjectPlansList(projectId) {
@@ -583,6 +634,190 @@
     // Most recent successful generation payload from /generate.
     let lastPlan = null;
 
+    function addAudienceSuggestion(suggestionRaw) {
+      const input = document.getElementById("audience");
+      if (!input) return;
+
+      const suggestion = String(suggestionRaw || "").trim();
+      if (!suggestion) return;
+
+      const current = String(input.value || "").trim();
+      if (!current) {
+        input.value = suggestion;
+        return;
+      }
+
+      const parts = current
+        .split(",")
+        .map(function (p) { return p.trim(); })
+        .filter(Boolean);
+
+      const lower = parts.map(function (p) { return p.toLowerCase(); });
+      if (lower.includes(suggestion.toLowerCase())) return;
+
+      parts.push(suggestion);
+      input.value = parts.join(", ");
+    }
+
+    function addTagSuggestion(suggestionRaw) {
+      const input = document.getElementById("tags");
+      if (!input) return;
+
+      const suggestion = String(suggestionRaw || "").trim();
+      if (!suggestion) return;
+
+      const current = String(input.value || "").trim();
+      if (!current) {
+        input.value = suggestion;
+        return;
+      }
+
+      const parts = current
+        .split(",")
+        .map(function (p) { return p.trim(); })
+        .filter(Boolean);
+
+      const lower = parts.map(function (p) { return p.toLowerCase(); });
+      if (lower.includes(suggestion.toLowerCase())) return;
+
+      parts.push(suggestion);
+      input.value = parts.join(", ");
+    }
+
+    function setToneSuggestion(toneRaw) {
+      const sel = document.getElementById("tone");
+      if (!sel) return;
+      const tone = String(toneRaw || "").trim();
+      if (!tone) return;
+
+      // Ensure option exists (in case the suggestion list includes custom tones).
+      let found = false;
+      for (const opt of sel.options) {
+        if (String(opt.value) === tone) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        const opt = document.createElement("option");
+        opt.value = tone;
+        opt.textContent = tone;
+        sel.appendChild(opt);
+      }
+      sel.value = tone;
+    }
+
+    function setCtaValidationState(isValid, message) {
+      const ctaInput = document.getElementById("builder-cta-target");
+      if (!ctaInput) return;
+
+      const msgEl = document.getElementById("builder-cta-invalid");
+      if (msgEl && message) msgEl.textContent = String(message);
+
+      if (isValid) {
+        ctaInput.classList.remove("is-invalid");
+      } else {
+        ctaInput.classList.add("is-invalid");
+      }
+    }
+
+    function normalizeCtaTarget(raw) {
+      const v = String(raw || "").trim();
+      if (!v) return "";
+      if (v.startsWith("@")) return v;
+      if (/^https?:\/\//i.test(v)) return v;
+      // If it looks like a bare domain (no spaces, has a dot), assume https.
+      if (!/\s/.test(v) && v.includes(".")) return `https://${v}`;
+      return v;
+    }
+
+    function validateCtaTargetFormat(raw) {
+      const v = String(raw || "").trim();
+      if (!v) return { ok: true, normalized: "" };
+
+      const normalized = normalizeCtaTarget(v);
+
+      if (normalized.startsWith("@")) {
+        if (normalized.length < 2) return { ok: false, normalized, message: "Handle looks incomplete (try @name)." };
+        if (/\s/.test(normalized)) return { ok: false, normalized, message: "Handles can’t contain spaces." };
+        return { ok: true, normalized };
+      }
+
+      try {
+        const u = new URL(normalized);
+        const proto = String(u.protocol || "").toLowerCase();
+        if (proto !== "http:" && proto !== "https:") {
+          return { ok: false, normalized, message: "URL must start with http:// or https://" };
+        }
+        if (!u.hostname) {
+          return { ok: false, normalized, message: "URL looks incomplete." };
+        }
+        return { ok: true, normalized };
+      } catch (_e) {
+        return { ok: false, normalized, message: "Enter an @handle or a full URL (https://…)." };
+      }
+    }
+
+    function validateCtaOrShowError() {
+      const ctaCheck = document.getElementById("builder-include-cta");
+      const ctaInput = document.getElementById("builder-cta-target");
+      if (!ctaCheck || !ctaInput) return true;
+
+      const include = !!ctaCheck.checked;
+      const vRaw = String(ctaInput.value || "").trim();
+
+      if (include && !vRaw) {
+        setCtaValidationState(false, "CTA is enabled — please enter a link or handle.");
+        ctaInput.focus();
+        setBuilderStatus('<div class="text-danger">CTA is enabled — please enter a link or handle.</div>');
+        showToast("CTA needs a link/handle", "warning");
+        return false;
+      }
+
+      // Validate format whenever there is a value, even if the checkbox is off.
+      if (vRaw) {
+        const res = validateCtaTargetFormat(vRaw);
+        if (res.normalized && res.normalized !== vRaw) {
+          ctaInput.value = res.normalized;
+        }
+        if (!res.ok) {
+          setCtaValidationState(false, res.message || "Enter an @handle or a full URL (https://…)." );
+          ctaInput.focus();
+          setBuilderStatus(`<div class="text-danger">CTA target is invalid: ${String(res.message || "Enter an @handle or a full URL (https://…).")}</div>`);
+          showToast("CTA target is invalid", "warning");
+          return false;
+        }
+      }
+
+      setCtaValidationState(true);
+      return true;
+    }
+
+    root.addEventListener("click", function (e) {
+      const btn = (e.target && e.target.closest) ? e.target.closest("[data-hm-audience-suggestion]") : null;
+      if (!btn) return;
+      e.preventDefault();
+      addAudienceSuggestion(btn.getAttribute("data-hm-audience-suggestion"));
+      const input = document.getElementById("audience");
+      if (input) input.focus();
+    });
+
+    root.addEventListener("click", function (e) {
+      const btn = (e.target && e.target.closest) ? e.target.closest("[data-hm-tag-suggestion]") : null;
+      if (!btn) return;
+      e.preventDefault();
+      addTagSuggestion(btn.getAttribute("data-hm-tag-suggestion"));
+      const input = document.getElementById("tags");
+      if (input) input.focus();
+    });
+
+    root.addEventListener("click", function (e) {
+      const btn = (e.target && e.target.closest) ? e.target.closest("[data-hm-tone-suggestion]") : null;
+      if (!btn) return;
+      e.preventDefault();
+      setToneSuggestion(btn.getAttribute("data-hm-tone-suggestion"));
+    });
+
     function updateBuilderPlatformAvailability() {
       const btnBoth = document.getElementById("gen-both");
       const note = document.getElementById("builder-youtube-note");
@@ -745,14 +980,22 @@
           <td class="text-muted">${type}</td>
           <td class="text-end">${formatBytes(item.size_bytes)}</td>
           <td class="text-end">
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              data-hm-preview="1"
-              data-url="${item.url}"
-              data-content-type="${type}"
-              data-name="${String(item.original_name || "")}" 
-            >View</button>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Media actions">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                data-hm-preview="1"
+                data-url="${item.url}"
+                data-content-type="${type}"
+                data-name="${String(item.original_name || "")}"
+              ><i class="bi bi-eye me-1" aria-hidden="true"></i>View</button>
+              <button
+                type="button"
+                class="btn btn-outline-danger builder-media-delete"
+                data-media-id="${item.id}"
+                data-name="${String(item.original_name || "")}"
+              ><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Delete</button>
+            </div>
           </td>
         `;
         tbody.appendChild(tr);
@@ -764,6 +1007,30 @@
           if (el.checked) selectedMediaIds.add(id);
           else selectedMediaIds.delete(id);
           updateBuilderPlatformAvailability();
+        });
+      });
+
+      tbody.querySelectorAll(".builder-media-delete").forEach(function (btn) {
+        btn.addEventListener("click", async function () {
+          const mid = parseInt(btn.getAttribute("data-media-id"), 10);
+          const name = String(btn.getAttribute("data-name") || "this file");
+          if (!projectId || !mid) return;
+          if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
+
+          try {
+            const resp = await fetch(`/api/projects/${projectId}/media/${mid}`, { method: "DELETE", headers: { Accept: "application/json" } });
+            if (!resp.ok) {
+              const text = await resp.text();
+              throw new Error(text || `Request failed (${resp.status})`);
+            }
+
+            selectedMediaIds.delete(mid);
+            try { delete mediaTypeById[mid]; } catch (_e) {}
+            showToast("Deleted", "success");
+            refreshBuilderMedia().catch(function () {});
+          } catch (_e) {
+            showToast("Delete failed", "danger");
+          }
         });
       });
 
@@ -942,6 +1209,8 @@
         return;
       }
 
+      if (!validateCtaOrShowError()) return;
+
       try {
         const genBtn = (which === "both") ? document.getElementById("gen-both") : document.getElementById("gen-bluesky");
         setButtonLoading(genBtn, true, "Generating…");
@@ -1069,7 +1338,25 @@
       ctaInput.addEventListener("input", function () {
         const v = String(ctaInput.value || "").trim();
         if (v) ctaCheck.checked = true;
+        if (v) {
+          const res = validateCtaTargetFormat(v);
+          if (res.ok) setCtaValidationState(true);
+        } else {
+          setCtaValidationState(true);
+        }
       });
+
+      // Toggle required UI state when CTA is enabled.
+      const sync = function () {
+        ctaInput.required = !!ctaCheck.checked;
+        if (!ctaCheck.checked) setCtaValidationState(true);
+      };
+      ctaCheck.addEventListener("change", function () {
+        sync();
+        // If turned on, validate immediately so it’s obvious what’s missing.
+        if (ctaCheck.checked) validateCtaOrShowError();
+      });
+      sync();
     }
 
     document.getElementById("builder-select-all").addEventListener("click", function () {
@@ -1133,6 +1420,8 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     initMediaPreviewModal();
+
+    initTooltips();
 
     // Post Builder (landing)
     initPostBuilder();

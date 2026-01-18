@@ -14,6 +14,7 @@ from app.ai.client import AIClient
 from app.ai.plan_validation import validate_plan
 from app.db import (
     ensure_default_project,
+    delete_media,
     get_media,
     get_project,
     insert_media,
@@ -33,13 +34,111 @@ from app.core.image_optimize import BSKY_MAX_IMAGE_BYTES, ImageOptimizationError
 web = Blueprint("web", __name__)
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    v = str(raw).strip().lower()
+    if v in {"1", "true", "yes", "y", "on"}:
+        return True
+    if v in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
+
+
+def _env_list(name: str, default: list[str] | None = None) -> list[str]:
+    raw = os.getenv(name)
+    if raw is None:
+        return list(default or [])
+    s = str(raw).strip()
+    if not s:
+        return list(default or [])
+    # Allow JSON list (handy when items contain commas).
+    if s.startswith("["):
+        try:
+            data = json.loads(s)
+            if isinstance(data, list):
+                return [str(x).strip() for x in data if str(x).strip()]
+        except Exception:
+            pass
+    return [p.strip() for p in s.split(",") if p.strip()]
+
+
+def _normalize_and_validate_cta_target(raw: str | None) -> tuple[str | None, str | None]:
+    """Returns (normalized_target, error_message)."""
+    if raw is None:
+        return None, None
+    v = str(raw).strip()
+    if not v:
+        return None, None
+
+    if v.startswith("@"):
+        if len(v) < 2:
+            return None, "Handle looks incomplete (try @name)."
+        if any(ch.isspace() for ch in v):
+            return None, "Handles can’t contain spaces."
+        return v, None
+
+    # URLs: accept http(s)://… and also bare domains (auto-prefix https://).
+    vv = v
+    if not re.match(r"^https?://", vv, flags=re.IGNORECASE):
+        if (" " not in vv) and ("." in vv):
+            vv = f"https://{vv}"
+
+    try:
+        from urllib.parse import urlparse
+
+        u = urlparse(vv)
+        scheme = (u.scheme or "").lower()
+        if scheme not in ("http", "https"):
+            return None, "URL must start with http:// or https://"
+        if not u.netloc:
+            return None, "URL looks incomplete."
+        return vv, None
+    except Exception:
+        return None, "Enter an @handle or a full URL (https://…)."
+
+
 def _utc_iso_z() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 @web.get("/")
 def index() -> str:
-    return render_template("index.html")
+    audience_suggestions = _env_list(
+        "HMP_AUDIENCE_SUGGESTIONS",
+        default=["indie devs", "makers", "founders", "developers", "designers", "open-source maintainers", "students"],
+    )
+    tag_suggestions = _env_list(
+        "HMP_TAG_SUGGESTIONS",
+        default=["buildinpublic", "indiedev", "flask", "python", "webdev", "opensource", "launch"],
+    )
+    tone_suggestions = _env_list(
+        "HMP_TONE_SUGGESTIONS",
+        default=["Informative", "Excited", "Cozy", "Funny", "Serious"],
+    )
+
+    base_tone_options = ["Informative", "Excited", "Cozy", "Funny", "Serious"]
+    tone_options = list(base_tone_options)
+    for t in tone_suggestions:
+        if t and t not in tone_options:
+            tone_options.append(t)
+
+    builder_defaults = {
+        "template_mode": _env_bool("HMP_DEFAULT_TEMPLATE_MODE", default=False),
+        "add_emojis": _env_bool("HMP_DEFAULT_ADD_EMOJIS", default=False),
+        "include_cta": _env_bool("HMP_DEFAULT_INCLUDE_CTA", default=False),
+        "cta_target": str(os.getenv("HMP_DEFAULT_CTA_TARGET") or "").strip(),
+    }
+
+    return render_template(
+        "index.html",
+        audience_suggestions=audience_suggestions,
+        tag_suggestions=tag_suggestions,
+        tone_suggestions=tone_suggestions,
+        tone_options=tone_options,
+        builder_defaults=builder_defaults,
+    )
 
 
 @web.get("/projects")
@@ -195,6 +294,33 @@ def api_project_upload(project_id: int) -> Response:
     )
 
 
+@web.delete("/api/projects/<int:project_id>/media/<int:media_id>")
+def api_project_delete_media(project_id: int, media_id: int) -> Response:
+    project = _project_or_404(project_id)
+    if project is None:
+        return jsonify({"error": "not found"}), 404
+
+    item = get_media(g._db, media_id)
+    if item is None:
+        return jsonify({"error": "not found"}), 404
+    if int(item.project_id) != int(project_id):
+        return jsonify({"error": "not found"}), 404
+
+    # Delete file on disk (best effort) and then remove DB row.
+    try:
+        path = os.path.join(current_app.config["UPLOAD_DIR"], item.stored_name)
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+    except Exception:
+        current_app.logger.exception("Failed deleting uploaded file from disk")
+        return jsonify({"ok": False, "error": "failed to delete file"}), 500
+
+    delete_media(g._db, media_id=media_id)
+    return jsonify({"ok": True})
+
+
 @web.post("/api/projects/<int:project_id>/generate")
 def api_project_generate(project_id: int) -> Response:
     project = _project_or_404(project_id)
@@ -208,11 +334,28 @@ def api_project_generate(project_id: int) -> Response:
     generate_targets = data.get("generate_targets")
     add_emojis = bool(data.get("add_emojis") or False)
     include_cta = bool(data.get("include_cta") or False)
-    cta_target = str(data.get("cta_target") or "").strip() or None
+    cta_target_raw = str(data.get("cta_target") or "").strip() or None
+    cta_target, cta_err = _normalize_and_validate_cta_target(cta_target_raw)
     # UX hardening: if the user provided a link/handle, treat that as explicit intent
     # to include a CTA even if the checkbox/payload got out of sync (cached JS, etc.).
     if cta_target:
         include_cta = True
+
+    if include_cta and not cta_target:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "invalid_cta_target", "human_message": "CTA is enabled — please enter a link or handle."},
+                }
+            ),
+            400,
+        )
+    if cta_err:
+        return (
+            jsonify({"ok": False, "error": {"code": "invalid_cta_target", "human_message": cta_err}}),
+            400,
+        )
     selected_media_ids = data.get("selected_media_ids")
 
     # Target platforms to generate. Backward compatible default is both.

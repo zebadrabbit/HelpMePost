@@ -96,6 +96,16 @@ The app reads configuration from environment variables (no Docker required). Com
 - `UPLOAD_DIR` (optional; defaults to `<instance>/uploads`)
 - `MAX_CONTENT_LENGTH` (optional; default is 512MB)
 
+Optional UI customization (landing page):
+
+- `HMP_AUDIENCE_SUGGESTIONS` (optional; comma-separated list or JSON list)
+- `HMP_TAG_SUGGESTIONS` (optional; comma-separated list or JSON list)
+- `HMP_TONE_SUGGESTIONS` (optional; comma-separated list or JSON list)
+- `HMP_DEFAULT_TEMPLATE_MODE` (`0`/`1`)
+- `HMP_DEFAULT_ADD_EMOJIS` (`0`/`1`)
+- `HMP_DEFAULT_INCLUDE_CTA` (`0`/`1`)
+- `HMP_DEFAULT_CTA_TARGET` (optional string)
+
 ### Using a `.env` file vs Apache `SetEnv`
 
 Important: this repository does **not** include `python-dotenv`, so the app will **not automatically** load a `.env` file.
@@ -117,6 +127,11 @@ SetEnv UPLOAD_DIR "/var/www/help-me-post/instance/uploads"
 
 # Optional: allow larger uploads (bytes)
 SetEnv MAX_CONTENT_LENGTH "536870912"
+
+# Optional UI defaults
+SetEnv HMP_DEFAULT_INCLUDE_CTA "0"
+SetEnv HMP_DEFAULT_CTA_TARGET ""
+SetEnv HMP_TAG_SUGGESTIONS "buildinpublic, indiedev, flask, python, webdev"
 ```
 
 ### `.env.example`

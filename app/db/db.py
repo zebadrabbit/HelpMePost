@@ -283,6 +283,11 @@ def get_media(conn: sqlite3.Connection, media_id: int) -> MediaItem | None:
     )
 
 
+def delete_media(conn: sqlite3.Connection, *, media_id: int) -> None:
+    conn.execute("DELETE FROM media WHERE id = ?", (media_id,))
+    conn.commit()
+
+
 def insert_plan(conn: sqlite3.Connection, *, project_id: int, model: str, plan_json: str) -> int:
     created_at = _utc_now_iso()
     cur = conn.execute(

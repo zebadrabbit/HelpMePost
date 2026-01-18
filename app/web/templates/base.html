@@ -13,6 +13,12 @@
       crossorigin="anonymous"
     />
 
+    <!-- Bootstrap Icons (CDN) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+
     <!-- Dropzone (CDN) -->
     <link
       rel="stylesheet"
@@ -25,9 +31,13 @@
   <body>
     <nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm">
       <div class="container">
-        <a class="navbar-brand fw-semibold" href="/">HelpMePost</a>
+        <a class="navbar-brand fw-semibold" href="/">
+          <i class="bi bi-stars me-2" aria-hidden="true"></i>HelpMePost
+        </a>
         <div class="ms-auto">
-          <a class="btn btn-sm btn-outline-secondary" href="/projects">Projects</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/projects">
+            <i class="bi bi-folder2-open me-1" aria-hidden="true"></i>Projects
+          </a>
         </div>
       </div>
     </nav>
@@ -35,6 +45,50 @@
     <main class="container py-4">
       {% block content %}{% endblock %}
     </main>
+
+    <footer class="hm-footer mt-5 pt-5 pb-4 border-top">
+      <div class="container">
+        <div class="row g-4">
+          <div class="col-12 col-lg-4">
+            <div class="fw-semibold">HelpMePost</div>
+            <div class="text-muted small mt-2" style="max-width: 28rem;">
+              A lightweight post builder for drafting and publishing to Bluesky.
+              Upload media, generate a draft, and post with confidence.
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="text-uppercase small text-muted fw-semibold">Navigate</div>
+            <ul class="list-unstyled mt-2 mb-0 hm-footer-links">
+              <li><a class="link-secondary" href="/"><i class="bi bi-house-door me-2" aria-hidden="true"></i>Post Builder</a></li>
+              <li><a class="link-secondary" href="/projects"><i class="bi bi-folder2-open me-2" aria-hidden="true"></i>Projects</a></li>
+            </ul>
+          </div>
+
+          <div class="col-6 col-md-4 col-lg-3">
+            <div class="text-uppercase small text-muted fw-semibold">Resources</div>
+            <ul class="list-unstyled mt-2 mb-0 hm-footer-links">
+              <li><a class="link-secondary" href="https://github.com/zebadrabbit/HelpMePost" target="_blank" rel="noreferrer"><i class="bi bi-github me-2" aria-hidden="true"></i>GitHub</a></li>
+              <li><a class="link-secondary" href="https://github.com/zebadrabbit/HelpMePost/blob/main/CHANGELOG.md" target="_blank" rel="noreferrer"><i class="bi bi-journal-text me-2" aria-hidden="true"></i>Changelog</a></li>
+              <li><a class="link-secondary" href="https://github.com/zebadrabbit/HelpMePost/blob/main/README.md" target="_blank" rel="noreferrer"><i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i>README</a></li>
+            </ul>
+          </div>
+
+          <div class="col-6 col-md-4 col-lg-3">
+            <div class="text-uppercase small text-muted fw-semibold">Legal</div>
+            <ul class="list-unstyled mt-2 mb-0 hm-footer-links">
+              <li><a class="link-secondary" href="https://github.com/zebadrabbit/HelpMePost/blob/main/LICENSE" target="_blank" rel="noreferrer"><i class="bi bi-shield-check me-2" aria-hidden="true"></i>License</a></li>
+              <li><a class="link-secondary" href="https://github.com/zebadrabbit/HelpMePost/issues" target="_blank" rel="noreferrer"><i class="bi bi-bug me-2" aria-hidden="true"></i>Report an issue</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4 pt-3 border-top">
+          <div class="small text-muted">&copy; {{ 2026 }} HelpMePost</div>
+          <div class="small text-muted">Built with Flask + SQLite.</div>
+        </div>
+      </div>
+    </footer>
 
     <!-- Toasts -->
     <div

@@ -13,7 +13,7 @@
 
       <div class="card hm-card rounded-4 mb-4">
         <div class="card-header bg-transparent">
-          <div class="fw-semibold">Upload media</div>
+          <div class="fw-semibold"><i class="bi bi-cloud-arrow-up me-2" aria-hidden="true"></i>Upload media</div>
           <div class="text-muted small">Drag &amp; drop images (or click to browse). Uploads attach to your project automatically.</div>
         </div>
         <div class="card-body">
@@ -63,38 +63,61 @@
 
       <div class="card hm-card rounded-4 mb-4">
         <div class="card-header bg-transparent">
-          <div class="fw-semibold">Generate</div>
+          <div class="fw-semibold"><i class="bi bi-magic me-2" aria-hidden="true"></i>Generate</div>
           <div class="text-muted small">Tell me the focus and I’ll draft a post.</div>
         </div>
         <div class="card-body">
           <div class="row g-3">
             <div class="col-12">
               <label for="focus" class="form-label">What’s the focus of this post?</label>
-              <input
-                id="focus"
-                class="form-control form-control-lg"
-                type="text"
-                placeholder="Example: A small Flask app that turns images into Bluesky posts"
-                required
-              />
+              <div class="hm-glow-field">
+                <input
+                  id="focus"
+                  class="form-control form-control-lg"
+                  type="text"
+                  placeholder="Example: A small Flask app that turns images into Bluesky posts"
+                  required
+                />
+              </div>
               <div class="form-text">This is required — it guides the generated post.</div>
             </div>
 
             <div class="col-12 col-md-6">
               <label for="audience" class="form-label">Audience <span class="text-muted">(optional)</span></label>
               <input id="audience" class="form-control" type="text" placeholder="indie devs, makers, pet owners…" />
+              <div class="form-text mt-2">Suggestions (click to add):</div>
+              <div class="d-flex flex-wrap gap-2 mt-1" id="audience-suggestions">
+                {% for s in audience_suggestions %}
+                  <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-hm-audience-suggestion="{{ s }}">{{ s }}</button>
+                {% endfor %}
+              </div>
             </div>
 
             <div class="col-12 col-md-6">
               <label for="tone" class="form-label">Tone <span class="text-muted">(optional)</span></label>
               <select id="tone" class="form-select">
                 <option value="" selected>(no preference)</option>
-                <option value="Informative">Informative</option>
-                <option value="Excited">Excited</option>
-                <option value="Cozy">Cozy</option>
-                <option value="Funny">Funny</option>
-                <option value="Serious">Serious</option>
+                {% for t in tone_options %}
+                  <option value="{{ t }}">{{ t }}</option>
+                {% endfor %}
               </select>
+              <div class="form-text mt-2">Suggestions (click to set):</div>
+              <div class="d-flex flex-wrap gap-2 mt-1" id="tone-suggestions">
+                {% for t in tone_suggestions %}
+                  <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-hm-tone-suggestion="{{ t }}">{{ t }}</button>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label for="tags" class="form-label">Tags / hashtags <span class="text-muted">(optional)</span></label>
+              <input id="tags" class="form-control" type="text" placeholder="buildinpublic, indiedev, flask…" />
+              <div class="form-text mt-2">Suggestions (click to add):</div>
+              <div class="d-flex flex-wrap gap-2 mt-1" id="tag-suggestions">
+                {% for s in tag_suggestions %}
+                  <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-hm-tag-suggestion="{{ s }}">{{ s }}</button>
+                {% endfor %}
+              </div>
             </div>
           </div>
 
@@ -124,29 +147,67 @@
               <div class="fw-semibold mb-2">Options</div>
 
               <div class="form-check form-switch mb-2">
-                <input class="form-check-input" type="checkbox" value="1" id="builder-template-mode" />
-                <label class="form-check-label" for="builder-template-mode"><span class="badge text-bg-secondary me-2">Template</span>Use Template Draft (no AI)</label>
+                <input class="form-check-input" type="checkbox" value="1" id="builder-template-mode" {% if builder_defaults.template_mode %}checked{% endif %} />
+                <label class="form-check-label" for="builder-template-mode">
+                  <span class="badge text-bg-secondary me-2">Template</span>Use Template Draft (no AI)
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link p-0 ms-1 hm-help"
+                    data-bs-toggle="tooltip"
+                    data-bs-title="Generates a simple draft locally. No OpenAI call. Useful when you’re offline or rate-limited."
+                    aria-label="Help: Template Draft"
+                  ><i class="bi bi-question-circle" aria-hidden="true"></i></button>
+                </label>
                 <div class="form-text">A basic, local draft when AI isn’t available.</div>
               </div>
 
               <div class="form-check form-switch mb-2">
-                <input class="form-check-input" type="checkbox" value="1" id="builder-add-emojis" />
-                <label class="form-check-label" for="builder-add-emojis">Add emojis</label>
+                <input class="form-check-input" type="checkbox" value="1" id="builder-add-emojis" {% if builder_defaults.add_emojis %}checked{% endif %} />
+                <label class="form-check-label" for="builder-add-emojis">
+                  Add emojis
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link p-0 ms-1 hm-help"
+                    data-bs-toggle="tooltip"
+                    data-bs-title="Light touch only (keeps it readable)."
+                    aria-label="Help: Add emojis"
+                  ><i class="bi bi-question-circle" aria-hidden="true"></i></button>
+                </label>
               </div>
 
               <div class="form-check form-switch mb-2">
-                <input class="form-check-input" type="checkbox" value="1" id="builder-include-cta" />
-                <label class="form-check-label" for="builder-include-cta">Include call-to-action</label>
+                <input class="form-check-input" type="checkbox" value="1" id="builder-include-cta" {% if builder_defaults.include_cta %}checked{% endif %} />
+                <label class="form-check-label" for="builder-include-cta">
+                  Include call-to-action
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link p-0 ms-1 hm-help"
+                    data-bs-toggle="tooltip"
+                    data-bs-html="true"
+                    data-bs-title="Adds a short line that points people to your link/handle.<br><span class='text-muted'>Example:</span> <code>Follow: @you</code> or <code>Link: https://…</code>"
+                    aria-label="Help: Call-to-action"
+                  ><i class="bi bi-question-circle" aria-hidden="true"></i></button>
+                </label>
               </div>
 
-              <label for="builder-cta-target" class="form-label">Link / handle <span class="text-muted">(optional)</span></label>
-              <input id="builder-cta-target" class="form-control" type="text" placeholder="@your-handle, https://…" />
+              <label for="builder-cta-target" class="form-label">
+                Link / handle <span class="text-muted">(optional)</span>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-link p-0 ms-1 hm-help"
+                  data-bs-toggle="tooltip"
+                  data-bs-title="Optional destination for the CTA. If you type something here, the CTA will be included automatically."
+                  aria-label="Help: CTA target"
+                ><i class="bi bi-question-circle" aria-hidden="true"></i></button>
+              </label>
+              <input id="builder-cta-target" class="form-control" type="text" placeholder="@your-handle, https://…" value="{{ builder_defaults.cta_target }}" />
+              <div class="invalid-feedback" id="builder-cta-invalid">Enter an @handle or a full URL (https://…)</div>
             </div>
           </div>
 
           <div class="d-flex flex-wrap gap-2 mt-4">
-            <button id="gen-bluesky" class="btn btn-primary" type="button">Generate Bluesky</button>
-            <button id="gen-both" class="btn btn-outline-primary" type="button">Generate Both</button>
+            <button id="gen-bluesky" class="btn btn-primary" type="button"><i class="bi bi-stars me-2" aria-hidden="true"></i>Generate Bluesky</button>
+            <button id="gen-both" class="btn btn-outline-primary" type="button"><i class="bi bi-layers me-2" aria-hidden="true"></i>Generate Both</button>
           </div>
 
           <div id="builder-status" class="mt-3"></div>
@@ -156,7 +217,7 @@
       <div class="card hm-card rounded-4" id="builder-results">
         <div class="card-header bg-transparent d-flex justify-content-between align-items-start flex-wrap gap-2">
           <div>
-            <div class="fw-semibold">Results</div>
+            <div class="fw-semibold"><i class="bi bi-card-text me-2" aria-hidden="true"></i>Results</div>
             <div class="text-muted small">Generate a draft to see results here.</div>
           </div>
           <div class="d-flex align-items-center gap-2">
@@ -189,7 +250,7 @@
                 <div id="card-bluesky">
                   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                     <div class="text-muted small">Draft text (hashtags are included)</div>
-                    <button class="btn btn-sm btn-outline-secondary" type="button" id="copy-bluesky">Copy post</button>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="copy-bluesky"><i class="bi bi-clipboard me-2" aria-hidden="true"></i>Copy post</button>
                   </div>
                   <pre class="result-box" id="bluesky-post">(not generated yet)</pre>
 
@@ -198,7 +259,16 @@
                     <span class="badge text-bg-danger" id="bluesky-over-limit" style="display:none;">Over limit</span>
                   </div>
 
-                  <div class="mt-3 mb-2 text-muted small">Alt text suggestions</div>
+                  <div class="mt-3 mb-2 text-muted small">
+                    Alt text suggestions
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link p-0 ms-1 hm-help"
+                      data-bs-toggle="tooltip"
+                      data-bs-title="Alt text helps people using screen readers and improves accessibility. Add one per image if you can."
+                      aria-label="Help: Alt text"
+                    ><i class="bi bi-question-circle" aria-hidden="true"></i></button>
+                  </div>
                   <div class="border rounded-3 p-2 bg-white" id="bluesky-alt">(none)</div>
                 </div>
 
@@ -232,18 +302,28 @@
               </div>
 
               <div class="tab-pane fade" id="tab-post" role="tabpanel" aria-labelledby="tab-btn-post" tabindex="0">
-                <div class="fw-semibold mb-2">Post to Bluesky <span class="text-muted">(publishes)</span></div>
+                <div class="fw-semibold mb-2"><i class="bi bi-send me-2" aria-hidden="true"></i>Post to Bluesky <span class="text-muted">(publishes)</span></div>
                 <div class="row g-2 align-items-end">
                   <div class="col-12 col-md-5">
                     <label for="builder-bsky-identifier" class="form-label">Bluesky handle</label>
                     <input id="builder-bsky-identifier" class="form-control" type="text" placeholder="your-handle.bsky.social" />
                   </div>
                   <div class="col-12 col-md-5">
-                    <label for="builder-bsky-app-password" class="form-label">App password</label>
+                    <label for="builder-bsky-app-password" class="form-label">
+                      App password
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-link p-0 ms-1 hm-help"
+                        data-bs-toggle="tooltip"
+                        data-bs-html="true"
+                        data-bs-title="Use a Bluesky <strong>App Password</strong> (recommended), not your main password. We do not store it."
+                        aria-label="Help: Bluesky app password"
+                      ><i class="bi bi-question-circle" aria-hidden="true"></i></button>
+                    </label>
                     <input id="builder-bsky-app-password" class="form-control" type="password" placeholder="xxxx-xxxx-xxxx-xxxx" />
                   </div>
                   <div class="col-12 col-md-2 d-grid">
-                    <button id="builder-bsky-post-btn" class="btn btn-warning" type="button" disabled>Post to Bluesky</button>
+                    <button id="builder-bsky-post-btn" class="btn btn-warning" type="button" disabled><i class="bi bi-send-fill me-2" aria-hidden="true"></i>Post</button>
                   </div>
                 </div>
                 <div class="form-text mt-2">We do not store your credentials. Images only (no video/GIF yet).</div>

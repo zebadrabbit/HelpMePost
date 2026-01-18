@@ -6,6 +6,111 @@ body {
   color: #111827;
 }
 
+.hm-footer {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(6px);
+}
+
+.hm-footer-links li {
+  margin: 0.35rem 0;
+}
+
+.hm-footer a.link-secondary {
+  text-decoration: none;
+}
+
+.hm-footer a.link-secondary:hover {
+  text-decoration: underline;
+}
+
+.hm-footer .bi {
+  opacity: 0.9;
+}
+
+.hm-help {
+  color: rgba(17, 24, 39, 0.55);
+  text-decoration: none;
+}
+
+.hm-help:hover {
+  color: rgba(17, 24, 39, 0.85);
+  text-decoration: none;
+}
+
+.hm-help .bi {
+  font-size: 0.95em;
+  vertical-align: -0.1em;
+}
+
+/* Animated gradient border (Focus input) */
+@property --hm-rotate {
+  syntax: "<angle>";
+  initial-value: 132deg;
+  inherits: false;
+}
+
+@keyframes hm-spin {
+  0% {
+    --hm-rotate: 0deg;
+  }
+  100% {
+    --hm-rotate: 360deg;
+  }
+}
+
+.hm-glow-field {
+  --hm-rotate: 132deg;
+  position: relative;
+  padding: 2px;
+  border-radius: 1rem;
+  background-image: linear-gradient(
+    var(--hm-rotate),
+    rgba(251, 146, 60, 0.95),
+    rgba(244, 114, 182, 0.90) 38%,
+    rgba(167, 139, 250, 0.95) 68%,
+    rgba(96, 165, 250, 0.90)
+  );
+  animation: hm-spin 6.5s linear infinite;
+}
+
+.hm-glow-field::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 1.2rem;
+  background-image: linear-gradient(
+    var(--hm-rotate),
+    rgba(251, 146, 60, 0.75),
+    rgba(244, 114, 182, 0.70) 38%,
+    rgba(167, 139, 250, 0.80) 68%,
+    rgba(96, 165, 250, 0.70)
+  );
+  filter: blur(18px);
+  opacity: 0.30;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.hm-glow-field .form-control {
+  border: 0;
+  border-radius: calc(1rem - 2px);
+  box-shadow: none;
+}
+
+.hm-glow-field:focus-within {
+  animation-duration: 4.2s;
+}
+
+.hm-glow-field:focus-within::after {
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-glow-field {
+    animation: none;
+  }
+}
+
 .hm-builder .lead {
   font-size: 1.1rem;
 }

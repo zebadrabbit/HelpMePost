@@ -183,6 +183,46 @@ def test_generate_requires_selected_media_ids_and_stores_plan(tmp_path, monkeypa
         conn.close()
 
 
+def test_delete_media_removes_db_row_and_file(tmp_path, monkeypatch):
+    client, db_path = _make_client(tmp_path, monkeypatch)
+
+    p = client.post("/api/projects", json={"title": "P1", "intent_text": "Intent"}).get_json()["project"]
+
+    uploaded = client.post(
+        f"/api/projects/{p['id']}/upload",
+        data={"file": (io.BytesIO(b"abc"), "a.txt")},
+        content_type="multipart/form-data",
+    ).get_json()
+
+    # Lookup stored_name so we can verify the file is deleted.
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute("SELECT stored_name FROM media WHERE id = ?", (uploaded["id"],)).fetchone()
+        assert row is not None
+        stored_name = str(row["stored_name"])
+    finally:
+        conn.close()
+
+    upload_path = tmp_path / "uploads" / stored_name
+    assert upload_path.exists()
+
+    resp = client.delete(f"/api/projects/{p['id']}/media/{uploaded['id']}")
+    assert resp.status_code == 200
+    assert resp.get_json()["ok"] is True
+
+    # Gone from listing.
+    items = client.get(f"/api/projects/{p['id']}/media").get_json()["items"]
+    assert items == []
+
+    # Gone from file serving endpoint.
+    gone = client.get(f"/media/{uploaded['id']}")
+    assert gone.status_code == 404
+
+    # File removed from disk.
+    assert not upload_path.exists()
+
+
 def test_generate_bluesky_only_omits_youtube_in_response_and_storage(tmp_path, monkeypatch):
     client, db_path = _make_client(tmp_path, monkeypatch)
 
